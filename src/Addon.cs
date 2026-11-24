@@ -179,12 +179,12 @@ public sealed partial class Addon : IExtensionApplication
     {
         if (Acad.DocumentManager.MdiActiveDocument != doc || !doc.Editor.IsQuiescent)
             return;
-        if (selection.HasSelection && selection.Blocks.Length == 0)
+        if (selection.HasSelection && selection.Objects.Length == 0)
         {
-            doc.Editor.WriteMessage("\nВыберите блок оформления ShizaAutomatics.");
+            doc.Editor.WriteMessage("\nВыберите размер, выноску, текст или блок оформления ShizaAutomatics.");
             return;
         }
-        Pending[doc] = new PendingChange(selection.Blocks, scale);
+        Pending[doc] = new PendingChange(selection.Objects, scale);
         doc.SendStringToExecute("SHIZAAPPLYSCALE ", false, false, false);
     }
 
@@ -193,12 +193,12 @@ public sealed partial class Addon : IExtensionApplication
     {
         var doc = Acad.DocumentManager.MdiActiveDocument;
         var selection = ReadSelection(doc);
-        if (selection.HasSelection && selection.Blocks.Length == 0)
+        if (selection.HasSelection && selection.Objects.Length == 0)
         {
-            doc.Editor.WriteMessage("\nВыберите блок оформления ShizaAutomatics.");
+            doc.Editor.WriteMessage("\nВыберите размер, выноску, текст или блок оформления ShizaAutomatics.");
             return;
         }
-        ApplyScale(doc, new PendingChange(selection.Blocks, null));
+        ApplyScale(doc, new PendingChange(selection.Objects, null));
     }
 
     [CommandMethod("SHIZAAPPLYSCALE", CommandFlags.UsePickSet)]
@@ -231,16 +231,22 @@ public sealed partial class Addon : IExtensionApplication
             }
 
             using var tx = db.TransactionManager.StartTransaction();
-            if (change.Blocks.Length == 0)
+            if (change.Objects.Length == 0)
             {
+                SetNativeAnnotationDefaults(db, tx, scale.Value);
                 var dictionary = (DBDictionary)tx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead);
                 WriteScale(dictionary, tx, scale.Value);
             }
-            foreach (var id in change.Blocks)
+            foreach (var id in change.Objects)
             {
                 if (id.IsErased || !id.IsValid)
                     throw new InvalidOperationException("Выбранный объект больше недоступен.");
-                var block = (BlockReference)tx.GetObject(id, OpenMode.ForWrite);
+                var entity = (Entity)tx.GetObject(id, OpenMode.ForWrite);
+                if (entity is not BlockReference block)
+                {
+                    ResizeNativeAnnotation(entity, db, tx, scale.Value);
+                    continue;
+                }
                 var previous = ReadBlockScale(block, tx);
                 if (previous is not > 0)
                     throw new InvalidOperationException("Объект больше не является блоком оформления.");
@@ -294,22 +300,30 @@ public sealed partial class Addon : IExtensionApplication
     private static ScaleSelection ReadSelection(Document doc, ObjectId[] ids)
     {
         using var tx = doc.Database.TransactionManager.StartOpenCloseTransaction();
-        var blocks = new List<ObjectId>();
+        var objects = new List<ObjectId>();
         var scales = new HashSet<int>();
         var hasSubsystem = false;
         foreach (var id in ids)
         {
-            if (id.IsErased || tx.GetObject(id, OpenMode.ForRead) is not BlockReference block)
+            if (id.IsErased || tx.GetObject(id, OpenMode.ForRead) is not Entity entity)
                 continue;
-            var scale = ReadBlockScale(block, tx);
-            if (scale is > 0)
+            if (entity is BlockReference block)
             {
-                blocks.Add(id);
-                scales.Add(scale.Value);
+                var scale = ReadBlockScale(block, tx);
+                if (scale is > 0)
+                {
+                    objects.Add(id);
+                    scales.Add(scale.Value);
+                }
+                hasSubsystem |= scale == 0;
             }
-            hasSubsystem |= scale == 0;
+            else if (IsNativeAnnotation(entity))
+            {
+                objects.Add(id);
+                scales.Add(NativeAnnotationScale(entity, doc.Database, tx));
+            }
         }
-        return new ScaleSelection(ids.Length > 0, hasSubsystem && blocks.Count == 0, blocks.ToArray(), scales.Count switch
+        return new ScaleSelection(ids.Length > 0, hasSubsystem && objects.Count == 0, objects.ToArray(), scales.Count switch
         {
             0 => ReadDocumentScale(doc.Database, tx),
             1 => scales.Single(),
@@ -320,9 +334,11 @@ public sealed partial class Addon : IExtensionApplication
     private static int ReadDocumentScale(Database db, Transaction tx) =>
         ReadScale((DBDictionary)tx.GetObject(db.NamedObjectsDictionaryId, OpenMode.ForRead), tx) ?? DefaultScale;
 
-    private static int? ReadBlockScale(BlockReference block, Transaction tx) =>
-        block.ExtensionDictionary.IsNull ? null :
-        ReadScale((DBDictionary)tx.GetObject(block.ExtensionDictionary, OpenMode.ForRead), tx);
+    private static int? ReadBlockScale(BlockReference block, Transaction tx) => ReadObjectScale(block, tx);
+
+    private static int? ReadObjectScale(DBObject obj, Transaction tx) =>
+        obj.ExtensionDictionary.IsNull ? null :
+        ReadScale((DBDictionary)tx.GetObject(obj.ExtensionDictionary, OpenMode.ForRead), tx);
 
     private static int? ReadScale(DBDictionary dictionary, Transaction tx)
     {
@@ -333,11 +349,13 @@ public sealed partial class Addon : IExtensionApplication
         return data?.AsArray().FirstOrDefault().Value is int scale && scale >= 0 ? scale : null;
     }
 
-    private static void WriteBlockScale(BlockReference block, Transaction tx, int scale)
+    private static void WriteBlockScale(BlockReference block, Transaction tx, int scale) => WriteObjectScale(block, tx, scale);
+
+    private static void WriteObjectScale(DBObject obj, Transaction tx, int scale)
     {
-        if (block.ExtensionDictionary.IsNull)
-            block.CreateExtensionDictionary();
-        WriteScale((DBDictionary)tx.GetObject(block.ExtensionDictionary, OpenMode.ForRead), tx, scale);
+        if (obj.ExtensionDictionary.IsNull)
+            obj.CreateExtensionDictionary();
+        WriteScale((DBDictionary)tx.GetObject(obj.ExtensionDictionary, OpenMode.ForRead), tx, scale);
     }
 
     private static void WriteScale(DBDictionary dictionary, Transaction tx, int scale)
@@ -696,8 +714,8 @@ public sealed partial class Addon : IExtensionApplication
         return data?.AsArray().FirstOrDefault().Value as string;
     }
 
-    private sealed record PendingChange(ObjectId[] Blocks, int? Scale);
-    private sealed record ScaleSelection(bool HasSelection, bool FixedScale, ObjectId[] Blocks, int? DisplayScale)
+    private sealed record PendingChange(ObjectId[] Objects, int? Scale);
+    private sealed record ScaleSelection(bool HasSelection, bool FixedScale, ObjectId[] Objects, int? DisplayScale)
     {
         public string Caption => FixedScale ? "Подсистема 1:1" :
             DisplayScale is int scale ? $"Оформление 1:{scale} ▾" : "Оформление: разные ▾";

@@ -3,8 +3,8 @@
                     AutodeskProduct="AutoCAD"
                     Name="ShizaAutomatics"
                     Description="Библиотека блоков и инструменты оформления"
-                    AppVersion="1.0.0"
-                    ProductCode="{51379B6D-4DFC-41BE-9B68-E8E0A7D7BE82}"
+                    AppVersion="1.0.1"
+                    ProductCode="{B069EE62-00DA-4B55-97C4-4B82284EE991}"
                     UpgradeCode="{E4A931FC-0673-4F93-BF3C-36A289CF6C71}">
   <CompanyDetails Name="ShizaAutomatics"/>
   <Components>
