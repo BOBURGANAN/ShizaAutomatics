@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+                    AutodeskProduct="AutoCAD"
+                    Name="ShizaAutomatics"
+                    Description="Библиотека блоков и инструменты оформления"
+                    AppVersion="1.0.0"
+                    ProductCode="{51379B6D-4DFC-41BE-9B68-E8E0A7D7BE82}"
+                    UpgradeCode="{E4A931FC-0673-4F93-BF3C-36A289CF6C71}">
+  <CompanyDetails Name="ShizaAutomatics"/>
+  <Components>
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD"
+                         SeriesMin="R25.0" SeriesMax="R25.0"/>
+    <ComponentEntry AppName="ShizaAutomatics" AppType=".Net"
+                    ModuleName="./Contents/ShizaAutomatics.dll"
+                    LoadOnAutoCADStartup="True"/>
+    <ComponentEntry AppName="ShizaAutomatics Ribbon" AppType="CuiX"
+                    ModuleName="./Contents/ShizaAutomatics.cuix"/>
+  </Components>
+</ApplicationPackage>

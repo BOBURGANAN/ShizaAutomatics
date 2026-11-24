@@ -1,0 +1,8 @@
+*.bak
+*.dwl
+*.dwl2
+*.log
+*.mnr
+*.pending
+*.prev
+/dist/
