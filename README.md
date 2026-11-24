@@ -4,14 +4,23 @@
 
 ## Установка
 
-1. Скачайте [ShizaAutomatics-1.0.0.zip](https://github.com/BOBURGANAN/ShizaAutomatics/releases/download/v1.0.0/ShizaAutomatics-1.0.0.zip) и распакуйте его.
-2. Закройте AutoCAD. Откройте в Проводнике папку `%APPDATA%\Autodesk\ApplicationPlugins`. Если папки нет, создайте её.
-3. Скопируйте туда папку `ShizaAutomatics.bundle`. Проверьте, что `PackageContents.xml` находится непосредственно внутри этой папки.
-4. Запустите AutoCAD 2025 и откройте чертёж. На ленте появится вкладка **ShizaAutomatics**, а в строке состояния — кнопка **Оформление 1:100**.
+Скачайте [ShizaAutomatics-1.0.0.zip](https://github.com/BOBURGANAN/ShizaAutomatics/releases/download/v1.0.0/ShizaAutomatics-1.0.0.zip) и распакуйте его. Выберите один из способов установки.
 
-Сборка 1.0 без цифровой подписи. Если AutoCAD попросит разрешение, сверьте путь к `ShizaAutomatics.dll` с папкой установленной надстройки и подтвердите загрузку. Если политика вашей организации запрещает такие сборки, обратитесь к CAD-администратору. [Установка пакетов AutoCAD](https://help.autodesk.com/cloudhelp/2025/ENU/AutoCAD-Customization/files/GUID-5E50A846-C80B-4FFD-8DD3-C20B22098008.htm)
+### Автоматическая загрузка при запуске
 
-Если вкладка не видна, откройте чертёж и введите `_RIBBON`. Если пакет не загрузился, проверьте путь и версию AutoCAD. При обновлении ручной установки сначала выгрузите старый `SHIZAAUTOMATICS` через `_CUIUNLOAD`, затем закройте AutoCAD и установите пакет.
+1. Закройте AutoCAD.
+2. Скопируйте папку `ShizaAutomatics.bundle` целиком в `%APPDATA%\Autodesk\ApplicationPlugins`. Если папки `ApplicationPlugins` нет, создайте её. Файл `PackageContents.xml` должен лежать непосредственно в `ShizaAutomatics.bundle`.
+3. Запустите AutoCAD 2025 и откройте чертёж. AutoCAD сам загрузит надстройку из `ApplicationPlugins`. [Установка пакетов AutoCAD](https://help.autodesk.com/cloudhelp/2025/ENU/AutoCAD-Customization/files/GUID-5E50A846-C80B-4FFD-8DD3-C20B22098008.htm)
+
+### Ручная загрузка из выбранной папки
+
+1. Сохраните папку `ShizaAutomatics.bundle` целиком там, где она будет храниться постоянно, например `D:\CAD\ShizaAutomatics.bundle`. Команда «Сохранить блок» требует доступа на запись в подпапку `Contents\Library`.
+2. В открытом чертеже введите `_NETLOAD` и выберите `Contents\ShizaAutomatics.dll`. Повторяйте этот шаг после каждого запуска AutoCAD. [NETLOAD](https://help.autodesk.com/cloudhelp/2025/ENG/AutoCAD-Core/files/GUID-D954BCC1-C4F0-488B-8F60-1D02D68940E0.htm)
+3. При первой установке введите `_CUILOAD`, нажмите «Обзор» и загрузите `Contents\ShizaAutomatics.cuix` из той же папки. AutoCAD запомнит расположение файла ленты в текущем профиле. [Загрузка файла CUIx](https://help.autodesk.com/cloudhelp/2022/ENU/AutoCAD-Customization/files/GUID-55B0E62E-9F40-4A95-BCE6-180EB47C9DDD.htm)
+
+После загрузки появятся вкладка **ShizaAutomatics** на ленте и кнопка **Оформление 1:100** в строке состояния. Если лента скрыта, введите `_RIBBON`.
+
+Сборка 1.0 без цифровой подписи. Если AutoCAD попросит разрешение, сверьте путь к `ShizaAutomatics.dll` с папкой установленной надстройки и подтвердите загрузку. Если политика вашей организации запрещает загрузку, обратитесь к CAD-администратору.
 
 ## Возможности
 
@@ -31,7 +40,7 @@
 
 ## Обновление и удаление
 
-Закройте AutoCAD. Перед заменой или удалением папки `ShizaAutomatics.bundle` сохраните отдельно DWG, которые добавили в библиотеку.
+При ручной установке сначала выгрузите группу `SHIZAAUTOMATICS` через `_CUIUNLOAD`, затем закройте AutoCAD. Перед заменой или удалением папки `ShizaAutomatics.bundle` сохраните отдельно DWG, которые добавили в библиотеку.
 
 ## Сборка
 
